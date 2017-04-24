@@ -1,0 +1,5 @@
+const char *ssid = "YOURS SSID"; // Put your SSID here
+const char *password = "YOURS PASS"; // Put your PASSWORD here
+
+char serverAddress[] = "yours.nightscout.address";  // server address
+
