@@ -2,4 +2,15 @@ const char *ssid = "YOURS SSID"; // Put your SSID here
 const char *password = "YOURS PASS"; // Put your PASSWORD here
 
 char serverAddress[] = "yours.nightscout.address";  // server address
+int port = 80;
+
+#ifdef DEBUG
+ #define DEBUG_PRINT(x)     Serial.print (x)
+ #define DEBUG_PRINTDEC(x)     Serial.print (x, DEC)
+ #define DEBUG_PRINTLN(x)  Serial.println (x)
+#else
+ #define DEBUG_PRINT(x)
+ #define DEBUG_PRINTDEC(x)
+ #define DEBUG_PRINTLN(x) 
+#endif
 
