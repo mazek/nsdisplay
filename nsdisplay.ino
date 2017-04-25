@@ -3,16 +3,16 @@
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
 
-#include <config.h>
-
 #include "memorysaver.h"
+
 #if !(defined ESP8266 )
 #error Please select the ArduCAM ESP8266 UNO board in the Tools/Board
 #endif
 
 // https://forum.arduino.cc/index.php?topic=46900.0
-#define NODEBUG
+#define DEBUG
 
+#include "config.h"
 
 int min = 80;
 int max = 160;
@@ -21,7 +21,6 @@ WiFiClient wifi;
 HttpClient client = HttpClient(wifi, serverAddress, port);
 
 String response;
-char response2[200];
 
 int statusCode = 0;
 DynamicJsonBuffer  jsonBuffer;
@@ -73,6 +72,17 @@ void clearDisplay() {
   }
 }
 
+void printDisplayError() {
+  byte Tab_error[]={0xff,0xff,0xff,0xAF,0xA3,0xAF,0xAF,0x86};
+  for (int i=0; i <= 7; i++){
+    digitalWrite(latchPin, LOW);
+    // shift the bits out:
+    shiftOut(dataPin, clockPin, MSBFIRST, Tab_error[i]);
+    // turn on the output so the LEDs can light up:
+    digitalWrite(latchPin, HIGH);      
+  }
+}
+
 void printDisplayStr(String numbers) {
   int bitToSet = 0;
 
@@ -81,6 +91,7 @@ void printDisplayStr(String numbers) {
     numbers = " " + numbers;
   }
   
+  DEBUG_PRINT("-");
   for (int i=7; i >= 0; i--){
     if (numbers.charAt(i) == ' ') {
       bitToSet = 10;
@@ -88,13 +99,14 @@ void printDisplayStr(String numbers) {
     else {
       bitToSet = numbers[i] - 48;
     }
-    DEBUG_PRINTLN(numbers[i]);
+    DEBUG_PRINT(numbers[i]);
     digitalWrite(latchPin, LOW);
     // shift the bits out:
     shiftOut(dataPin, clockPin, MSBFIRST, Tab[bitToSet]);
     // turn on the output so the LEDs can light up:
     digitalWrite(latchPin, HIGH); 
   }
+  DEBUG_PRINTLN("-");
 }
 
 
@@ -105,15 +117,15 @@ void loop() {
   // read the status code and body of the response
   statusCode = client.responseStatusCode();
   response = client.responseBody();
-  response.remove(0, 3);
-  response = response.substring(0, response.length()-5);
-  response.toCharArray(response2,response.length()+1);
-  
-  DEBUG_PRINT("Response2: -");
-  DEBUG_PRINT(response2);
+
+  DEBUG_PRINT("statusCode: ");
+  DEBUG_PRINTLN(statusCode);
+
+  DEBUG_PRINT("Response: -");
+  DEBUG_PRINT(response);
   DEBUG_PRINTLN("-");
-    
-  JsonObject& _data = jsonBuffer.parseObject(response2);
+      
+  JsonObject& _data = jsonBuffer.parseObject(response);
 
   if (!_data.success()) {
     DEBUG_PRINTLN("parseObject() failed:( ");
@@ -127,28 +139,28 @@ void loop() {
   String cur_time_s = _data["status"][0]["now"];
   String read_time_s = _data["bgs"][0]["datetime"];
 
-  DEBUG_PRINT("1 cur_time_s: ");
-  DEBUG_PRINTLN(cur_time_s);
+  DEBUG_PRINT("1. cur_time_s: ");
+  DEBUG_PRINT(cur_time_s);
   
-  DEBUG_PRINT("1 read_time_s: ");
+  DEBUG_PRINT(", read_time_s: ");
   DEBUG_PRINTLN(read_time_s);
   
   cur_time_s = cur_time_s.substring(0, cur_time_s.length()-3);
   read_time_s = read_time_s.substring(0, read_time_s.length()-3);
 
-  DEBUG_PRINT("2 cur_time_s: ");
-  DEBUG_PRINTLN(cur_time_s);
+  DEBUG_PRINT("2. cur_time_s: ");
+  DEBUG_PRINT(cur_time_s);
   
-  DEBUG_PRINT("2 read_time_s: ");
+  DEBUG_PRINT(", read_time_s: ");
   DEBUG_PRINTLN(read_time_s);
   
   unsigned long  cur_time = cur_time_s.toFloat();
   unsigned long  read_time = read_time_s.toFloat();
   
-  DEBUG_PRINT("3 cur_time: ");
-  DEBUG_PRINTLN(cur_time);
+  DEBUG_PRINT("3. cur_time: ");
+  DEBUG_PRINT(cur_time);
   
-  DEBUG_PRINT("4 read_time: ");
+  DEBUG_PRINT(", read_time: ");
   DEBUG_PRINTLN(read_time);
 
   unsigned long parakeet_last_seen = cur_time - read_time ;
@@ -160,7 +172,8 @@ void loop() {
     // Lost parakeet signal after 900 seconds.
     DEBUG_PRINTLN("I lost parakeet signal :(");
     clearDisplay();
-    printDisplayStr("00000000");
+    //printDisplayStr("00000000");
+    printDisplayError();  
   }
   else {
     // Parakeet operational.
@@ -209,7 +222,6 @@ void loop() {
     DEBUG_PRINTLN("-----");
     clearDisplay();
     printDisplayStr(displayString);
-
   }
   
   DEBUG_PRINTLN("Wait five seconds");
