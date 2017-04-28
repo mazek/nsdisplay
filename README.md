@@ -5,3 +5,6 @@ This is a simple code to display glucose level take from nightscout personal sit
 
 Display used: https://www.dfrobot.com/wiki/index.php/3-Wire_LED_Module_(SKU:DFR0090)
 
+ToDo:
+ * https://github.com/PaulStoffregen/Time
+
