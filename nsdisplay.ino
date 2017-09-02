@@ -3,7 +3,6 @@
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
 
-#include "memorysaver.h"
 
 #if !(defined ESP8266 )
 #error Please select the ArduCAM ESP8266 UNO board in the Tools/Board
@@ -108,6 +107,7 @@ void printDisplayStr(String numbers) {
   }
   DEBUG_PRINTLN("-");
 }
+
 
 
 void loop() {
@@ -225,6 +225,6 @@ void loop() {
   }
   
   DEBUG_PRINTLN("Wait five seconds");
-  delay(60000);
+  delay(6000);
   
 }
