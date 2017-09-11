@@ -20,8 +20,14 @@ WiFiClient wifi;
 HttpClient client = HttpClient(wifi, serverAddress, port);
 
 String response;
-
 int statusCode = 0;
+
+char cur_time_s[13];
+char read_time_s[13];
+
+unsigned long  cur_time;
+unsigned long  read_time;
+
 DynamicJsonBuffer  jsonBuffer;
 
 //Pin connected to latch pin (ST_CP) of 74HC595
@@ -135,9 +141,9 @@ void loop() {
   else {
     DEBUG_PRINTLN("parseObject() success! ");
   }
- 
-  String cur_time_s = _data["status"][0]["now"];
-  String read_time_s = _data["bgs"][0]["datetime"];
+
+  strncpy(cur_time_s, _data["status"][0]["now"],10);
+  strncpy(read_time_s, _data["bgs"][0]["datetime"],10);
 
   DEBUG_PRINT("1. cur_time_s: ");
   DEBUG_PRINT(cur_time_s);
@@ -145,8 +151,8 @@ void loop() {
   DEBUG_PRINT(", read_time_s: ");
   DEBUG_PRINTLN(read_time_s);
   
-  cur_time_s = cur_time_s.substring(0, cur_time_s.length()-3);
-  read_time_s = read_time_s.substring(0, read_time_s.length()-3);
+  cur_time = atof(cur_time_s);
+  read_time = atof(read_time_s);
 
   DEBUG_PRINT("2. cur_time_s: ");
   DEBUG_PRINT(cur_time_s);
@@ -154,15 +160,6 @@ void loop() {
   DEBUG_PRINT(", read_time_s: ");
   DEBUG_PRINTLN(read_time_s);
   
-  unsigned long  cur_time = cur_time_s.toFloat();
-  unsigned long  read_time = read_time_s.toFloat();
-  
-  DEBUG_PRINT("3. cur_time: ");
-  DEBUG_PRINT(cur_time);
-  
-  DEBUG_PRINT(", read_time: ");
-  DEBUG_PRINTLN(read_time);
-
   unsigned long parakeet_last_seen = cur_time - read_time ;
   DEBUG_PRINT("I seen parakeet more then ");
   DEBUG_PRINT(parakeet_last_seen);
@@ -225,6 +222,6 @@ void loop() {
   }
   
   DEBUG_PRINTLN("Wait five seconds");
-  delay(6000);
+  delay(60000);
   
 }
