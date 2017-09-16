@@ -19,6 +19,8 @@ int max = 160;
 WiFiClient wifi;
 HttpClient client = HttpClient(wifi, serverAddress, port);
 
+long rssi = 0;
+
 String response;
 int statusCode = 0;
 
@@ -28,8 +30,14 @@ char read_time_s[13];
 unsigned long  cur_time;
 unsigned long  read_time;
 
-DynamicJsonBuffer  jsonBuffer;
+unsigned long sugar_level;
+long sugar_level_delta;
 
+unsigned long parakeet_last_seen;
+
+//DynamicJsonBuffer  jsonBuffer;
+StaticJsonBuffer<2000>  jsonBuffer;
+  
 //Pin connected to latch pin (ST_CP) of 74HC595
 const int latchPin = 12;
 //Pin connected to clock pin (SH_CP) of 74HC595
@@ -54,7 +62,7 @@ void setup() {
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
+    delay(100);
     Serial.print(".");
   }
   DEBUG_PRINTLN("WiFi connected");
@@ -96,7 +104,7 @@ void printDisplayStr(String numbers) {
     numbers = " " + numbers;
   }
   
-  DEBUG_PRINT("-");
+  DEBUG_PRINT("printDisplayStr: -");
   for (int i=7; i >= 0; i--){
     if (numbers.charAt(i) == ' ') {
       bitToSet = 10;
@@ -111,12 +119,14 @@ void printDisplayStr(String numbers) {
     // turn on the output so the LEDs can light up:
     digitalWrite(latchPin, HIGH); 
   }
-  DEBUG_PRINTLN("-");
+  DEBUG_PRINTLN("- :printDisplayStr");
 }
 
+void parse_json(unsigned long&  cur_time, unsigned long&  read_time, unsigned long& sugar_level, long& sugar_level_delta, unsigned long& parakeet_last_seen) {
 
-
-void loop() {
+  //DynamicJsonBuffer  jsonBuffer;
+  StaticJsonBuffer<1000>  jsonBuffer;
+    
   DEBUG_PRINTLN("making GET request");
   client.get("/pebble");
 
@@ -135,7 +145,6 @@ void loop() {
 
   if (!_data.success()) {
     DEBUG_PRINTLN("parseObject() failed:( ");
-    delay(5000);
     return;
   }
   else {
@@ -143,8 +152,8 @@ void loop() {
   }
 
   strncpy(cur_time_s, _data["status"][0]["now"],10);
-  strncpy(read_time_s, _data["bgs"][0]["datetime"],10);
-
+  strncpy(read_time_s, _data["bgs"][0]["datetime"],10);  
+  
   DEBUG_PRINT("1. cur_time_s: ");
   DEBUG_PRINT(cur_time_s);
   
@@ -153,17 +162,45 @@ void loop() {
   
   cur_time = atof(cur_time_s);
   read_time = atof(read_time_s);
+  
+  DEBUG_PRINT("2. cur_time: ");
+  DEBUG_PRINT(cur_time);
+  
+  DEBUG_PRINT(", read_time: ");
+  DEBUG_PRINTLN(read_time);
 
-  DEBUG_PRINT("2. cur_time_s: ");
-  DEBUG_PRINT(cur_time_s);
-  
-  DEBUG_PRINT(", read_time_s: ");
-  DEBUG_PRINTLN(read_time_s);
-  
-  unsigned long parakeet_last_seen = cur_time - read_time ;
+  parakeet_last_seen = cur_time - read_time ;
   DEBUG_PRINT("I seen parakeet more then ");
   DEBUG_PRINT(parakeet_last_seen);
   DEBUG_PRINTLN(" seconds.");
+
+  if (parakeet_last_seen > 900) {
+    DEBUG_PRINTLN("I lost parakeet signal :(");
+  }
+  else {
+    // Parakeet operational.
+    DEBUG_PRINTLN("I got parakeet signal :)");
+    sugar_level = _data["bgs"][0]["sgv"];
+    DEBUG_PRINT("Sugar level: ");
+    DEBUG_PRINTLN(sugar_level);
+    sugar_level_delta = _data["bgs"][0]["bgdelta"];
+    DEBUG_PRINT("sugar_level_delta: ");
+    DEBUG_PRINTLN(sugar_level_delta);
+  }
+  return;
+}
+
+
+
+void loop() {
+  DEBUG_PRINT("Free Heap: ");
+  DEBUG_PRINTLN(ESP.getFreeHeap());
+
+  rssi = WiFi.RSSI();  
+  DEBUG_PRINT("RSSI: ");
+  DEBUG_PRINTLN(rssi);  
+  
+  parse_json(cur_time, read_time, sugar_level, sugar_level_delta, parakeet_last_seen);
   
   if (parakeet_last_seen > 900) {
     // Lost parakeet signal after 900 seconds.
@@ -175,15 +212,8 @@ void loop() {
   else {
     // Parakeet operational.
     DEBUG_PRINTLN("I got parakeet signal :)");
-    unsigned long bwpo = _data["bgs"][0]["sgv"];
-    DEBUG_PRINT("BWPO: ");
-    DEBUG_PRINTLN(bwpo);
-    long bgdelta = _data["bgs"][0]["bgdelta"];
-    DEBUG_PRINT("BGDELTA: ");
-    DEBUG_PRINTLN(bgdelta);
-
     
-    if (bgdelta > 0) {
+    if (sugar_level_delta > 0) {
       // Sugar is growing.
       //      bgdelta_s = "+%s" % bgdelta
     }
@@ -191,37 +221,31 @@ void loop() {
       // Sugar is dropping.
       //      bgdelta_s = "%s" % bgdelta
     }
-    
-    if (bwpo < min) {
+  
+    if (sugar_level < min) {
       // Sugar below minimum level.
-      DEBUG_PRINT("Sugar: ");
-      DEBUG_PRINT(bwpo);
-      DEBUG_PRINT(", change:  ");
-      DEBUG_PRINTLN(bgdelta);
       DEBUG_PRINTLN("Sugar below minimum level."); 
     }
-    else if (bwpo > max) {
+    else if (sugar_level > max) {
       // Sugar above maximum level.
-      DEBUG_PRINT("Sugar: ");
-      DEBUG_PRINT(bwpo);
-      DEBUG_PRINT(", change:  ");
-      DEBUG_PRINTLN(bgdelta);
       DEBUG_PRINTLN("Sugar above maximum level.");
     }
     else {
       // Sugar ok. 
     }
     clearDisplay();
-    DEBUG_PRINTLN("-----");
-    DEBUG_PRINTLN(bwpo);
-    String displayString = String(bwpo, DEC);
+    DEBUG_PRINT("Sugar lvl (dec): ");
+    DEBUG_PRINTLN(sugar_level);
+    String displayString = String(sugar_level, DEC);
+     DEBUG_PRINT("Sugar lvl (str): ");
     DEBUG_PRINTLN(displayString);
-    DEBUG_PRINTLN("-----");
+
     clearDisplay();
     printDisplayStr(displayString);
   }
   
   DEBUG_PRINTLN("Wait five seconds");
   delay(60000);
+  DEBUG_PRINTLN();
   
 }
