@@ -3,20 +3,19 @@
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
 
-
-#if !(defined ESP8266 )
-#error Please select the ArduCAM ESP8266 UNO board in the Tools/Board
-#endif
+// LED RGB WS2812B 8x32 matrix
+// http://dl.btc.pl/kamami_wa/2352151.pdf
+// ArduCam ESP8266-12E UNO z WiFi zgodny z Arduino
 
 // https://forum.arduino.cc/index.php?topic=46900.0
 #define DEBUG
 
 #include "config.h"
 
-int min = 80;
-int max = 160;
+int min_ = 80;
+int max_ = 160;
 
-WiFiClient wifi;
+WiFiClientSecure wifi;
 HttpClient client = HttpClient(wifi, serverAddress, port);
 
 long rssi = 0;
@@ -39,11 +38,15 @@ unsigned long parakeet_last_seen;
 StaticJsonBuffer<2000>  jsonBuffer;
   
 //Pin connected to latch pin (ST_CP) of 74HC595
-const int latchPin = 12;
+//const int latchPin = 12;
 //Pin connected to clock pin (SH_CP) of 74HC595
-const int clockPin = 13;
+//const int clockPin = 13;
 //Pin connected to Data in (DS) of 74HC595
-const int dataPin = 15;
+//const int dataPin = 15;
+
+const int latchPin = 0;
+const int clockPin = 4;
+const int dataPin = 2;
 
 //How to draw a digit 0 - 9 and blank character.
 byte Tab[]={0xc0,0xf9,0xa4,0xb0,0x99,0x92,0x82,0xf8,0x80,0x90,0xff};
@@ -222,11 +225,11 @@ void loop() {
       //      bgdelta_s = "%s" % bgdelta
     }
   
-    if (sugar_level < min) {
+    if (sugar_level < min_) {
       // Sugar below minimum level.
       DEBUG_PRINTLN("Sugar below minimum level."); 
     }
-    else if (sugar_level > max) {
+    else if (sugar_level > max_) {
       // Sugar above maximum level.
       DEBUG_PRINTLN("Sugar above maximum level.");
     }
