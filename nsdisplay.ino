@@ -3,12 +3,14 @@
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
 
-// LED RGB WS2812B 8x32 matrix
-// http://dl.btc.pl/kamami_wa/2352151.pdf
-// ArduCam ESP8266-12E UNO z WiFi zgodny z Arduino
+// 
+// 8 * 7 segment display with nightscout info on it.
+// 
+// Software reset from.
+// https://circuits4you.com/2017/12/31/software-reset-esp8266/
+//
 
-// https://forum.arduino.cc/index.php?topic=46900.0
-#define DEBUG
+#//define DEBUG
 
 #include "config.h"
 
@@ -36,13 +38,6 @@ unsigned long parakeet_last_seen;
 
 //DynamicJsonBuffer  jsonBuffer;
 StaticJsonBuffer<2000>  jsonBuffer;
-  
-//Pin connected to latch pin (ST_CP) of 74HC595
-//const int latchPin = 12;
-//Pin connected to clock pin (SH_CP) of 74HC595
-//const int clockPin = 13;
-//Pin connected to Data in (DS) of 74HC595
-//const int dataPin = 15;
 
 const int latchPin = 0;
 const int clockPin = 4;
@@ -240,7 +235,7 @@ void loop() {
     DEBUG_PRINT("Sugar lvl (dec): ");
     DEBUG_PRINTLN(sugar_level);
     String displayString = String(sugar_level, DEC);
-     DEBUG_PRINT("Sugar lvl (str): ");
+    DEBUG_PRINT("Sugar lvl (str): ");
     DEBUG_PRINTLN(displayString);
 
     clearDisplay();
@@ -250,5 +245,7 @@ void loop() {
   DEBUG_PRINTLN("Wait five seconds");
   delay(60000);
   DEBUG_PRINTLN();
+  DEBUG_PRINTLN("Restarting....");
+  ESP.restart();
   
 }
